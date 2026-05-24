@@ -7,21 +7,23 @@ export class XPublisher implements SocialPublisher {
 
   constructor() {
     if (this.isConfigured()) {
+      const config = require('../config/config.service.js').configService.read();
       this.client = new TwitterApi({
         appKey: process.env.X_APP_KEY!,
         appSecret: process.env.X_APP_SECRET!,
-        accessToken: process.env.X_ACCESS_TOKEN!,
-        accessSecret: process.env.X_ACCESS_SECRET!,
+        accessToken: config.x?.accessToken || process.env.X_ACCESS_TOKEN!,
+        accessSecret: config.x?.accessSecret || process.env.X_ACCESS_SECRET!,
       });
     }
   }
 
   isConfigured(): boolean {
+    const config = require('../config/config.service.js').configService.read();
     return !!(
       process.env.X_APP_KEY &&
       process.env.X_APP_SECRET &&
-      process.env.X_ACCESS_TOKEN &&
-      process.env.X_ACCESS_SECRET
+      (config.x?.accessToken || process.env.X_ACCESS_TOKEN) &&
+      (config.x?.accessSecret || process.env.X_ACCESS_SECRET)
     );
   }
 

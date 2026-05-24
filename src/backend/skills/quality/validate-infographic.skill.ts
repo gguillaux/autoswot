@@ -20,7 +20,8 @@ export const validateInfographicSkill: Skill<Input, QualityResult> = {
 
   async execute(input: Input): Promise<QualityResult> {
     const { imagePath, analysis } = input;
-    const apiKey = process.env.GEMINI_API_KEY;
+    const config = require('../../services/config/config.service.js').configService.read();
+    const apiKey = config.gemini?.apiKey || process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
       throw new SkillError('validate_infographic', 'CONFIG_ERROR', 'GEMINI_API_KEY not set');

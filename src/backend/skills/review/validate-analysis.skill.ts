@@ -20,7 +20,8 @@ export const validateAnalysisSkill: Skill<Input, ReviewResult> = {
 
   async execute(input: Input): Promise<ReviewResult> {
     const { analysis, researchData } = input;
-    const apiKey = process.env.GEMINI_API_KEY;
+    const config = require('../../services/config/config.service.js').configService.read();
+    const apiKey = config.gemini?.apiKey || process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
       throw new SkillError('validate_analysis', 'CONFIG_ERROR', 'GEMINI_API_KEY not set');

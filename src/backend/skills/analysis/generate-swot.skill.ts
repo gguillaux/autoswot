@@ -21,7 +21,8 @@ export const generateSwotSkill: Skill<Input, SecurityAnalysis> = {
 
   async execute(input: Input): Promise<SecurityAnalysis> {
     const { ticker, researchData, corrections } = input;
-    const apiKey = process.env.GEMINI_API_KEY;
+    const config = require('../../services/config/config.service.js').configService.read();
+    const apiKey = config.gemini?.apiKey || process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
       throw new SkillError('generate_swot_analysis', 'CONFIG_ERROR', 'GEMINI_API_KEY is not set');

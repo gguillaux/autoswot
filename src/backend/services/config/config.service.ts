@@ -17,6 +17,9 @@ export interface SocialCredentials {
   tiktok?: {
     accessToken?: string;
   };
+  gemini?: {
+    apiKey?: string;
+  };
 }
 
 export class ConfigService {

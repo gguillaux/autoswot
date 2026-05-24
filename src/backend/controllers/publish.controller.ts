@@ -31,11 +31,14 @@ export class PublishController {
 
   status = (req: Request, res: Response): void => {
     const publishers = socialPublisherFactory.createAllPublishers();
+    const config = require('../services/config/config.service.js').configService.read();
+    
     res.json({
       x: publishers.x.isConfigured(),
       tiktok: publishers.tiktok.isConfigured(),
       facebook: publishers.facebook.isConfigured(),
       linkedin: publishers.linkedin.isConfigured(),
+      gemini: !!(config.gemini?.apiKey || process.env.GEMINI_API_KEY),
     });
   };
 }

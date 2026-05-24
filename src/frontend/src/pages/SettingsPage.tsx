@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 export default function SettingsPage() {
   const [status, setStatus] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
+  const [geminiKey, setGeminiKey] = useState('');
 
   useEffect(() => {
     fetchStatus();
@@ -53,8 +54,41 @@ export default function SettingsPage() {
     { id: 'facebook', name: 'Facebook', icon: 'f' },
   ];
 
+  const handleGeminiSave = async () => {
+    try {
+      await fetch('http://localhost:3001/api/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ platform: 'gemini', data: { apiKey: geminiKey } })
+      });
+      fetchStatus();
+      setGeminiKey('');
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   return (
-    <div style={{ maxWidth: 600, margin: '0 auto' }}>
+    <div style={{ maxWidth: 600, margin: '0 auto', paddingBottom: '4rem' }}>
+      <h2 style={{ marginBottom: '2rem' }}>AI Configuration</h2>
+      <div className="card" style={{ marginBottom: '3rem' }}>
+        <h3 style={{ marginBottom: '1rem' }}>Google Gemini API Key</h3>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem', fontSize: '0.9rem' }}>
+          Enter your Gemini API key to enable the AI Analysis pipeline. Status: {status.gemini ? <span style={{color:'var(--success)'}}>Configured</span> : <span style={{color:'var(--error)'}}>Missing</span>}
+        </p>
+        <div style={{ display: 'flex', gap: '1rem' }}>
+          <input 
+            type="password" 
+            className="input" 
+            placeholder="AIzaSy..." 
+            value={geminiKey}
+            onChange={e => setGeminiKey(e.target.value)}
+            style={{ flex: 1 }}
+          />
+          <button className="btn btn-primary" onClick={handleGeminiSave} disabled={!geminiKey}>Save</button>
+        </div>
+      </div>
+
       <h2 style={{ marginBottom: '2rem' }}>Social Media Accounts</h2>
       <p style={{ marginBottom: '2rem', color: 'var(--text-secondary)' }}>
         Connect your social media accounts via OAuth to enable one-click publishing. Access tokens are stored securely in your local filesystem.
