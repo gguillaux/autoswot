@@ -13,6 +13,7 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
   },
+  root: __dirname,
   build: {
     outDir: '../../dist',
     emptyOutDir: true,
