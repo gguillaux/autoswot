@@ -1,31 +1,21 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppState } from '../App';
+import { useAnalyze } from '../hooks/useAnalyze';
 
 export default function AnalyzePage({ appState, setAppState }: { appState: AppState, setAppState: any }) {
   const [ticker, setTicker] = useState(appState.ticker);
   const [style, setStyle] = useState(appState.style);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const { analyze, loading, error } = useAnalyze();
   const navigate = useNavigate();
 
   const handleAnalyze = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!ticker) return;
+
+    const data = await analyze(ticker, style);
     
-    setLoading(true);
-    setError('');
-
-    try {
-      const res = await fetch('http://localhost:3001/api/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ticker: ticker.toUpperCase(), style }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Analysis failed');
-
+    if (data) {
       setAppState({
         ...appState,
         ticker: ticker.toUpperCase(),
@@ -36,12 +26,7 @@ export default function AnalyzePage({ appState, setAppState }: { appState: AppSt
           png: data.infographicPngUrl,
         }
       });
-      
       navigate('/infographic');
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setLoading(false);
     }
   };
 

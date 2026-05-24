@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppState } from '../App';
+import { usePublish } from '../hooks/usePublish';
 
 export default function PublishPage({ appState }: { appState: AppState }) {
   const navigate = useNavigate();
@@ -11,25 +12,8 @@ export default function PublishPage({ appState }: { appState: AppState }) {
     facebook: false,
     tiktok: false,
   });
-  const [status, setStatus] = useState<any>(null);
-  const [publishing, setPublishing] = useState(false);
-  const [configured, setConfigured] = useState<any>({});
-
-  useEffect(() => {
-    fetch('http://localhost:3001/api/social-status')
-      .then(res => res.json())
-      .then(data => {
-        setConfigured(data);
-        // Deselect unconfigured platforms
-        setPlatforms(prev => {
-          const next = { ...prev };
-          Object.keys(next).forEach(k => {
-            if (!data[k]) next[k] = false;
-          });
-          return next;
-        });
-      });
-  }, []);
+  
+  const { publish, publishing, status, configured } = usePublish();
 
   if (!appState.infographicUrls.jpeg) {
     return (
@@ -44,31 +28,7 @@ export default function PublishPage({ appState }: { appState: AppState }) {
     const selected = Object.entries(platforms).filter(([_, v]) => v).map(([k]) => k);
     if (selected.length === 0) return;
 
-    setPublishing(true);
-    setStatus(null);
-
-    try {
-      // Need local path, extract from URL
-      const filename = appState.infographicUrls.jpeg!.split('/').pop();
-      const localPath = `${process.cwd() ? process.cwd() : '.'}/output/${filename}`; // Simplification for demo
-
-      const res = await fetch('http://localhost:3001/api/publish', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          platforms: selected,
-          imagePath: localPath,
-          caption
-        }),
-      });
-
-      const data = await res.json();
-      setStatus(data.results);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setPublishing(false);
-    }
+    await publish(selected, appState.infographicUrls.jpeg!, caption);
   };
 
   return (
@@ -95,7 +55,7 @@ export default function PublishPage({ appState }: { appState: AppState }) {
                 <label key={p} style={{ display: 'flex', alignItems: 'center', gap: '1rem', opacity: configured[p] ? 1 : 0.5 }}>
                   <input
                     type="checkbox"
-                    checked={platforms[p]}
+                    checked={platforms[p] && configured[p]}
                     disabled={!configured[p]}
                     onChange={e => setPlatforms({ ...platforms, [p]: e.target.checked })}
                     style={{ width: '1.2rem', height: '1.2rem' }}

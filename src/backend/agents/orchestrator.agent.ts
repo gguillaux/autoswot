@@ -6,11 +6,13 @@ import { DesignerAgent } from './designer.agent.js';
 import { QualityAgent } from './quality.agent.js';
 
 export class PipelineOrchestrator {
-  private researchAgent = new ResearchAgent();
-  private analystAgent = new AnalystAgent();
-  private reviewerAgent = new ReviewerAgent();
-  private designerAgent = new DesignerAgent();
-  private qualityAgent = new QualityAgent();
+  constructor(
+    private researchAgent: ResearchAgent,
+    private analystAgent: AnalystAgent,
+    private reviewerAgent: ReviewerAgent,
+    private designerAgent: DesignerAgent,
+    private qualityAgent: QualityAgent
+  ) {}
 
   async execute(input: PipelineInput): Promise<PipelineResult> {
     const { ticker, style } = input;
