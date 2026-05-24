@@ -10,329 +10,245 @@ Generate AI-powered SWOT infographics for any financial security and publish the
 graph TB
     subgraph Client["Electron / PWA Shell"]
         UI["React + Vite Frontend"]
-        SW["Service Worker (PWA)"]
+        SW["Service Worker - PWA"]
     end
 
-    subgraph Backend["TypeScript Backend (Express)"]
+    subgraph Backend["TypeScript Backend - Express"]
         API["REST API Layer"]
-        GEM["Gemini Service"]
-        INF["Infographic Engine"]
-        SOC["Social Publisher"]
+        ORC["🎯 Pipeline Orchestrator"]
+    end
+
+    subgraph Agents["Multi-Agent Pipeline"]
+        RA["📊 Research Agent"]
+        AA["🧠 Analyst Agent"]
+        REV["🔍 Reviewer Agent"]
+        DA["🎨 Designer Agent"]
+        QA["✅ Quality Agent"]
     end
 
     subgraph External["External Services"]
+        YF["Yahoo Finance"]
         GEMINI["Google Gemini 2.5 Flash"]
-        XAPI["X (Twitter) API v2"]
+        XAPI["X API v2"]
         TIKTOK["TikTok Content Posting API"]
         FB["Facebook Graph API"]
         LI["LinkedIn Posts API"]
     end
 
-    UI --> API
-    API --> GEM --> GEMINI
-    API --> INF
-    API --> SOC
-    SOC --> XAPI
-    SOC --> TIKTOK
-    SOC --> FB
-    SOC --> LI
+    UI --> API --> ORC
+    ORC --> RA --> YF
+    ORC --> AA --> GEMINI
+    ORC --> REV --> GEMINI
+    ORC --> DA --> GEMINI
+    ORC --> QA --> GEMINI
+    REV -.->|corrections| AA
+    QA -.->|re-render| DA
+    API --> XAPI
+    API --> TIKTOK
+    API --> FB
+    API --> LI
 ```
 
 ---
 
-## Tech Stack Rationale
+## Decisions (Resolved)
 
-### Backend: **TypeScript (Node.js)** ✅
+| Question | Decision |
+|---|---|
+| Social media integration | **Direct API integration** — no unified service, no recurring cost |
+| Data grounding | **Yahoo Finance** via `yahoo-finance2` — cross-check Gemini output against real data |
+| Infographic design | **User chooses at runtime** — 3 styles: Dark Gradient, Clean Corporate, Bold Editorial |
+| Authentication | **Single user** with local API keys + OAuth flows for social platforms |
+| Multi-agent | **Yes** — Orchestrator-Worker pipeline for analysis review + infographic QA |
 
-| Criterion | TypeScript/Node | Rust | Go | Elixir |
-|---|---|---|---|---|
-| Gemini SDK | ✅ Official `@google/genai` | ⚠️ Community | ⚠️ Community | ❌ None |
-| Social Media SDKs | ✅ `twitter-api-v2`, `axios` | ❌ Minimal | ⚠️ Limited | ❌ None |
-| Canvas/Image Gen | ✅ `canvas`, `sharp` | ⚠️ Complex | ⚠️ Limited | ❌ None |
-| Electron Integration | ✅ Same language | ❌ FFI | ❌ FFI | ❌ FFI |
-| Type Safety | ✅ Full | ✅ Full | ✅ Partial | ⚠️ Dynamic |
-| Dev Velocity | ✅ Fast | ⚠️ Slow | ✅ Moderate | ✅ Moderate |
+---
 
-**TypeScript wins** because the entire stack (Electron + backend + infographic engine) shares one language, the Gemini SDK is official and first-class, and the social media library ecosystem is the strongest.
+## Tech Stack
 
-### Frontend: **React + Vite**
-- Vite for fast HMR and builds
-- React for component-based UI
-- Shared TypeScript across the entire stack
+- **Backend**: TypeScript + Express + Node.js
+- **Frontend**: React + Vite
+- **AI**: Google Gemini 2.5 Flash (`@google/genai`)
+- **Data**: Yahoo Finance (`yahoo-finance2`)
+- **Infographic**: Canvas + Sharp (1080×1920 px, 9:16)
+- **Desktop**: Electron + PWA Service Worker
+- **Validation**: Zod schemas for all agent I/O
+- **Social**: X API v2, TikTok Content Posting API, Facebook Graph API, LinkedIn Posts API
 
-### Desktop/PWA: **Electron + electron-builder**
-- Service Worker for offline PWA capabilities
-- `electron-builder` for cross-platform packaging (Win/Mac/Linux)
-- Web-first architecture: the app is a PWA that also runs inside Electron
+See [AGENTS.md](./AGENTS.md) for the full multi-agent architecture and [SKILLS.md](./SKILLS.md) for the skills registry.
 
 ---
 
 ## User Review Required
 
 > [!IMPORTANT]
-> **Social Media API Accounts Required.** You must create developer accounts and obtain API credentials for each platform before social publishing can work:
+> **Social Media API Accounts Required.** You must create developer accounts and obtain API credentials for each platform:
 > - **X (Twitter)**: Developer account + pay-per-use billing (~$0.01/post)
 > - **TikTok**: Developer app + manual review for `video.publish` scope
 > - **Facebook**: Meta Developer app + Page Access Token with `pages_manage_posts`
 > - **LinkedIn**: Developer app + `w_member_social` scope
 
 > [!WARNING]
-> **TikTok Photo/Carousel Limitation**: TikTok's Content Posting API supports photo uploads but requires **JPEG/WEBP format** (not PNG). The infographic engine will export in JPEG for TikTok compatibility. TikTok also requires a **manual app audit** before posting is enabled.
-
-> [!IMPORTANT]
-> **Unified API Alternative**: Instead of integrating 4 separate APIs, we could use a unified social media API service like **Ayrshare** or **Postproxy** — one SDK to post to all platforms. This would dramatically simplify the integration but adds a recurring cost (~$29-99/mo). **Do you prefer direct API integration or a unified service?**
+> **TikTok Photo/Carousel**: Requires **JPEG/WEBP** (not PNG). The infographic engine exports JPEG for TikTok. TikTok also requires a **manual app audit** before posting is enabled.
 
 ---
 
-## Open Questions
-
-1. **Security data source**: Should we rely solely on Gemini's training knowledge for the company history/revenue model/SWOT, or should we also integrate a financial data API (like Yahoo Finance or Financial Modeling Prep) to ground the analysis with real numbers?
-
-2. **Infographic design style**: Do you have a preferred visual style for the infographics? Options:
-   - **Dark mode gradient** (deep navy/purple with vibrant accent colors)
-   - **Clean corporate** (white background, structured grid layout)
-   - **Bold editorial** (bright colors, large typography, magazine-style)
-
-3. **Authentication**: Should the app support multiple user accounts (OAuth for each social platform), or is this a single-user tool with pre-configured API keys stored locally?
-
-4. **History/Queue**: Should the app keep a history of generated infographics and allow re-publishing or scheduling?
-
----
-
-## Proposed Changes
-
-### Project Structure
+## Project Structure
 
 ```
 autoswot/
-├── package.json                  # Root: workspaces config
-├── tsconfig.json                 # Shared TS config
-├── .env.example                  # API keys template
+├── package.json
+├── tsconfig.json
+├── .env.example
+├── AGENTS.md                          # Multi-agent architecture docs
+├── SKILLS.md                          # Skills registry docs
 │
 ├── src/
-│   ├── backend/                  # Express + TypeScript backend
-│   │   ├── server.ts             # Express entry point
+│   ├── backend/
+│   │   ├── server.ts                  # Express entry point
 │   │   ├── routes/
-│   │   │   ├── analysis.ts       # POST /api/analyze - Gemini analysis
-│   │   │   ├── infographic.ts    # POST /api/infographic - Generate image
-│   │   │   └── publish.ts        # POST /api/publish - Social publishing
+│   │   │   ├── analysis.ts            # POST /api/analyze
+│   │   │   ├── infographic.ts         # POST /api/infographic
+│   │   │   └── publish.ts             # POST /api/publish
+│   │   │
+│   │   ├── agents/                    # Multi-Agent System
+│   │   │   ├── orchestrator.agent.ts  # 🎯 Pipeline orchestrator
+│   │   │   ├── research.agent.ts      # 📊 Yahoo Finance data collection
+│   │   │   ├── analyst.agent.ts       # 🧠 Gemini SWOT generation
+│   │   │   ├── reviewer.agent.ts      # 🔍 Fact-checking against Yahoo data
+│   │   │   ├── designer.agent.ts      # 🎨 Infographic rendering
+│   │   │   ├── quality.agent.ts       # ✅ Vision-based QA
+│   │   │   └── types/
+│   │   │       ├── pipeline.types.ts
+│   │   │       ├── research.types.ts
+│   │   │       ├── analysis.types.ts
+│   │   │       ├── review.types.ts
+│   │   │       ├── design.types.ts
+│   │   │       └── quality.types.ts
+│   │   │
+│   │   ├── skills/                    # Atomic agent capabilities
+│   │   │   ├── registry.ts            # Skill registry
+│   │   │   ├── skill.interface.ts     # Base Skill<TIn, TOut> interface
+│   │   │   ├── research/
+│   │   │   │   ├── fetch-yahoo-finance.skill.ts
+│   │   │   │   └── fetch-company-profile.skill.ts
+│   │   │   ├── analysis/
+│   │   │   │   └── generate-swot.skill.ts
+│   │   │   ├── review/
+│   │   │   │   ├── validate-analysis.skill.ts
+│   │   │   │   └── cross-reference.skill.ts
+│   │   │   ├── design/
+│   │   │   │   ├── generate-infographic.skill.ts
+│   │   │   │   └── apply-style.skill.ts
+│   │   │   └── quality/
+│   │   │       └── validate-infographic.skill.ts
+│   │   │
 │   │   ├── services/
-│   │   │   ├── gemini.service.ts          # Gemini API integration
-│   │   │   ├── infographic.service.ts     # Canvas-based infographic engine
-│   │   │   ├── social/
-│   │   │   │   ├── x.publisher.ts         # X (Twitter) integration
-│   │   │   │   ├── tiktok.publisher.ts    # TikTok integration
-│   │   │   │   ├── facebook.publisher.ts  # Facebook integration
-│   │   │   │   ├── linkedin.publisher.ts  # LinkedIn integration
-│   │   │   │   └── publisher.interface.ts # Shared publisher contract
-│   │   │   └── index.ts
-│   │   ├── types/
-│   │   │   ├── analysis.types.ts  # SWOT, revenue model, history types
-│   │   │   └── publish.types.ts   # Social platform response types
+│   │   │   └── social/
+│   │   │       ├── publisher.interface.ts
+│   │   │       ├── x.publisher.ts
+│   │   │       ├── tiktok.publisher.ts
+│   │   │       ├── facebook.publisher.ts
+│   │   │       └── linkedin.publisher.ts
+│   │   │
 │   │   └── config/
-│   │       └── env.ts             # Environment config validation
+│   │       └── env.ts
 │   │
-│   ├── frontend/                  # React + Vite frontend
+│   ├── frontend/                      # React + Vite
 │   │   ├── index.html
 │   │   ├── vite.config.ts
 │   │   ├── public/
-│   │   │   ├── manifest.json      # PWA manifest
-│   │   │   └── sw.js              # Service Worker
-│   │   ├── src/
-│   │   │   ├── main.tsx           # React entry
-│   │   │   ├── App.tsx            # Root component + routing
-│   │   │   ├── index.css          # Design system + global styles
-│   │   │   ├── pages/
-│   │   │   │   ├── AnalyzePage.tsx     # Ticker input + analysis view
-│   │   │   │   ├── InfographicPage.tsx # Preview + edit infographic
-│   │   │   │   └── PublishPage.tsx     # Platform selector + publish
-│   │   │   ├── components/
-│   │   │   │   ├── TickerInput.tsx          # Autocomplete ticker search
-│   │   │   │   ├── SwotCard.tsx             # Individual SWOT quadrant
-│   │   │   │   ├── AnalysisDisplay.tsx      # Full analysis view
-│   │   │   │   ├── InfographicPreview.tsx   # 9:16 canvas preview
-│   │   │   │   ├── PlatformToggle.tsx       # Social platform selector
-│   │   │   │   ├── PublishStatus.tsx        # Publishing progress/status
-│   │   │   │   └── Navbar.tsx               # Navigation bar
-│   │   │   └── hooks/
-│   │   │       ├── useAnalysis.ts       # Analysis API hook
-│   │   │       ├── useInfographic.ts    # Infographic generation hook
-│   │   │       └── usePublish.ts        # Publishing hook
-│   │   └── tsconfig.json
+│   │   │   ├── manifest.json
+│   │   │   └── sw.js
+│   │   └── src/
+│   │       ├── main.tsx
+│   │       ├── App.tsx
+│   │       ├── index.css
+│   │       ├── pages/
+│   │       │   ├── AnalyzePage.tsx     # Ticker input + style selector + analysis
+│   │       │   ├── InfographicPage.tsx # 9:16 preview + caption editor
+│   │       │   └── PublishPage.tsx     # Platform toggles + publish status
+│   │       ├── components/
+│   │       │   ├── TickerInput.tsx
+│   │       │   ├── StyleSelector.tsx   # 3-style visual picker
+│   │       │   ├── SwotCard.tsx
+│   │       │   ├── AnalysisDisplay.tsx
+│   │       │   ├── PipelineProgress.tsx # Agent pipeline step indicator
+│   │       │   ├── InfographicPreview.tsx
+│   │       │   ├── PlatformToggle.tsx
+│   │       │   ├── PublishStatus.tsx
+│   │       │   └── Navbar.tsx
+│   │       └── hooks/
+│   │           ├── useAnalysis.ts
+│   │           ├── useInfographic.ts
+│   │           └── usePublish.ts
 │   │
-│   └── electron/                  # Electron main process
-│       ├── main.ts                # Electron entry point
-│       ├── preload.ts             # Context bridge
-│       └── electron-builder.yml   # Build config
+│   └── electron/
+│       ├── main.ts
+│       ├── preload.ts
+│       └── electron-builder.yml
 │
 ├── assets/
-│   └── fonts/                     # Bundled fonts for infographic
+│   └── fonts/
 │       ├── Inter-Bold.ttf
 │       └── Inter-Regular.ttf
 │
 └── scripts/
-    ├── dev.sh                     # Start dev (backend + frontend + electron)
-    └── build.sh                   # Production build
+    ├── dev.sh
+    └── build.sh
 ```
 
 ---
 
-### Component 1: Backend — Gemini Analysis Service
+## Component Details
 
-#### [NEW] [gemini.service.ts](file:///home/ggx/repos/autoswot/src/backend/services/gemini.service.ts)
+### Component 1: Multi-Agent Pipeline
 
-Core Gemini integration using `@google/genai` SDK:
-- **`analyzeSecuity(ticker: string)`**: Sends a structured prompt to Gemini 2.5 Flash asking for:
-  1. **Company Overview** — Founded, headquarters, sector, market cap range
-  2. **History** — Key milestones (founding, IPO, major acquisitions, pivots)
-  3. **Revenue Model** — How the company makes money (segments, percentages)
-  4. **SWOT Analysis** — Strengths, Weaknesses, Opportunities, Threats (3-4 bullet points each)
-- Uses **structured JSON output** (Gemini's response schema) to enforce consistent data shape
-- Google Search grounding enabled for real-time data accuracy
+The core of the application. See [AGENTS.md](./AGENTS.md) for full architecture.
 
-#### [NEW] [analysis.types.ts](file:///home/ggx/repos/autoswot/src/backend/types/analysis.types.ts)
+**Pipeline flow:** Research → Analyst → Reviewer (↔ retry) → Designer → Quality (↔ retry) → Done
 
-```typescript
-interface SecurityAnalysis {
-  ticker: string;
-  companyName: string;
-  sector: string;
-  overview: string;
-  history: HistoryMilestone[];
-  revenueModel: RevenueSegment[];
-  swot: {
-    strengths: string[];
-    weaknesses: string[];
-    opportunities: string[];
-    threats: string[];
-  };
-  generatedAt: Date;
-}
-```
+**Key design decisions:**
+- Max 2 retry loops between Reviewer ↔ Analyst and Quality ↔ Designer
+- Research Agent is pure data (no LLM) — deterministic Yahoo Finance fetching
+- Reviewer uses both deterministic comparison (cross-reference skill) AND Gemini for nuanced checks
+- Quality Agent uses Gemini **multimodal vision** to inspect the rendered image
+- All inter-agent payloads are Zod-validated
 
----
+### Component 2: Social Media Publishers
 
-### Component 2: Infographic Engine
+Direct integration with each platform's native API:
+- **X**: `twitter-api-v2` — media upload v1.1 → tweet v2
+- **TikTok**: `axios` — async init → poll for completion
+- **Facebook**: `axios` + `form-data` — Graph API v22.0 `/{page-id}/photos`
+- **LinkedIn**: `axios` — register upload → PUT binary → create post
 
-#### [NEW] [infographic.service.ts](file:///home/ggx/repos/autoswot/src/backend/services/infographic.service.ts)
+All implement a shared `SocialPublisher` interface for uniform error handling.
 
-Canvas-based (using `canvas` + `sharp`) infographic generator:
-- **Dimensions**: 1080 × 1920px (9:16 portrait)
-- **Layout sections** (top to bottom):
-  1. **Header** — Company name, ticker, sector badge, logo placeholder
-  2. **Overview** — Brief 2-3 sentence company summary
-  3. **Timeline** — Visual horizontal timeline with key milestones
-  4. **Revenue Breakdown** — Donut/pie chart showing revenue segments
-  5. **SWOT Grid** — 2×2 grid with color-coded quadrants (Green/Red/Blue/Orange)
-  6. **Footer** — Generation date, branding watermark
-- Exports as **JPEG** (TikTok-compatible) and **PNG** (high quality for other platforms)
-- Uses registered fonts (Inter) for professional typography
-- Dark gradient background with glassmorphism card effects
+### Component 3: React Frontend
 
----
+Three-page wizard flow:
+1. **AnalyzePage** — Ticker input, **style selector** (3 visual cards to pick design style), analysis display with pipeline progress indicator
+2. **InfographicPage** — 9:16 preview, caption editor, zoom controls
+3. **PublishPage** — Platform toggles, connection status, publish with real-time progress
 
-### Component 3: Social Media Publishers
+**New component: `StyleSelector.tsx`** — Visual card picker showing thumbnails of the 3 design styles. User selects before triggering analysis.
 
-#### [NEW] [publisher.interface.ts](file:///home/ggx/repos/autoswot/src/backend/services/social/publisher.interface.ts)
+**New component: `PipelineProgress.tsx`** — Shows the multi-agent pipeline steps (Research → Analyze → Review → Design → QA) with active/complete/pending states.
 
-```typescript
-interface SocialPublisher {
-  platform: 'x' | 'tiktok' | 'facebook' | 'linkedin';
-  publish(imagePath: string, caption: string): Promise<PublishResult>;
-  isConfigured(): boolean;
-}
-```
+### Component 4: Electron + PWA Shell
 
-#### [NEW] [x.publisher.ts](file:///home/ggx/repos/autoswot/src/backend/services/social/x.publisher.ts)
-- Uses `twitter-api-v2` library
-- Two-step flow: upload media via v1.1 → post tweet via v2
-- Includes image alt-text for accessibility
+- Electron wraps the Vite frontend with `contextIsolation` enabled
+- PWA manifest + Service Worker for browser-based offline support
+- Window size: 440×900 (portrait, matches infographic ratio)
 
-#### [NEW] [tiktok.publisher.ts](file:///home/ggx/repos/autoswot/src/backend/services/social/tiktok.publisher.ts)
-- Uses TikTok Content Posting API via `axios`
-- Async flow: initialize upload → poll for completion
-- Exports infographic as JPEG/WEBP for compatibility
+### Component 5: Configuration
 
-#### [NEW] [facebook.publisher.ts](file:///home/ggx/repos/autoswot/src/backend/services/social/facebook.publisher.ts)
-- Uses Facebook Graph API v22.0 via `axios` + `form-data`
-- Posts to configured Facebook Page
-- Supports multipart form data upload
-
-#### [NEW] [linkedin.publisher.ts](file:///home/ggx/repos/autoswot/src/backend/services/social/linkedin.publisher.ts)
-- Uses LinkedIn Posts API (modern, replaces UGC Posts)
-- Three-step: register upload → PUT binary → create post
-- Handles API versioning headers
-
----
-
-### Component 4: React Frontend
-
-#### [NEW] [AnalyzePage.tsx](file:///home/ggx/repos/autoswot/src/frontend/src/pages/AnalyzePage.tsx)
-
-The main entry screen:
-- **Ticker Input** with autocomplete suggestions
-- **"Analyze" button** triggers Gemini analysis
-- Displays results in cards: Overview, Timeline, Revenue, SWOT grid
-- Animated loading states with skeleton screens
-- "Generate Infographic →" CTA button
-
-#### [NEW] [InfographicPage.tsx](file:///home/ggx/repos/autoswot/src/frontend/src/pages/InfographicPage.tsx)
-
-Infographic preview and editing:
-- Full 9:16 preview rendered in a scrollable container
-- Zoom controls and device frame mockup
-- Caption editor for social media text
-- "Publish →" CTA button
-
-#### [NEW] [PublishPage.tsx](file:///home/ggx/repos/autoswot/src/frontend/src/pages/PublishPage.tsx)
-
-Social media publishing dashboard:
-- Toggle switches for each platform (X, TikTok, Facebook, LinkedIn)
-- Shows connection status for each platform (configured/not configured)
-- "Publish to Selected" button with confirmation modal
-- Real-time progress indicators per platform
-- Success/failure status with links to published posts
-
-#### [NEW] [index.css](file:///home/ggx/repos/autoswot/src/frontend/src/index.css)
-
-Design system:
-- **Color palette**: Deep slate/indigo dark mode with vibrant teal/violet accents
-- **Typography**: Inter (Google Fonts) + system fallbacks
-- **Effects**: Glassmorphism cards, gradient borders, subtle shadows
-- **Animations**: Page transitions, skeleton loading, pulse effects
-- **Responsive**: Works in Electron window and browser PWA
-
----
-
-### Component 5: Electron + PWA Shell
-
-#### [NEW] [main.ts](file:///home/ggx/repos/autoswot/src/electron/main.ts)
-- Creates `BrowserWindow` pointing to Vite dev server (dev) or built files (prod)
-- Disabled `nodeIntegration`, enabled `contextIsolation` (security best practices)
-- Custom title bar styling
-- Window size: 440×900 (mobile-like for infographic preview)
-
-#### [NEW] [manifest.json](file:///home/ggx/repos/autoswot/src/frontend/public/manifest.json)
-- PWA manifest with app name, icons, theme colors
-- `display: "standalone"` for app-like experience
-- Start URL points to the analysis page
-
-#### [NEW] [sw.js](file:///home/ggx/repos/autoswot/src/frontend/public/sw.js)
-- Service Worker for offline caching of static assets
-- Cache-first strategy for fonts and styles
-- Network-first for API calls
-
----
-
-### Component 6: Configuration & Build
-
-#### [NEW] [package.json](file:///home/ggx/repos/autoswot/package.json)
-
-Key dependencies:
+Dependencies (added for multi-agent):
 ```json
 {
   "dependencies": {
     "@google/genai": "latest",
+    "yahoo-finance2": "^2.14",
     "express": "^4.21",
     "canvas": "^2.11",
     "sharp": "^0.33",
@@ -342,46 +258,8 @@ Key dependencies:
     "dotenv": "^16.4",
     "cors": "^2.8",
     "zod": "^3.23"
-  },
-  "devDependencies": {
-    "typescript": "^5.5",
-    "vite": "^6",
-    "@vitejs/plugin-react": "^4",
-    "react": "^19",
-    "react-dom": "^19",
-    "react-router-dom": "^7",
-    "electron": "^33",
-    "electron-builder": "^25",
-    "tsx": "^4",
-    "concurrently": "^9"
   }
 }
-```
-
-#### [NEW] [.env.example](file:///home/ggx/repos/autoswot/.env.example)
-
-```env
-# Gemini
-GEMINI_API_KEY=
-
-# X (Twitter)
-X_APP_KEY=
-X_APP_SECRET=
-X_ACCESS_TOKEN=
-X_ACCESS_SECRET=
-
-# TikTok
-TIKTOK_CLIENT_KEY=
-TIKTOK_CLIENT_SECRET=
-TIKTOK_ACCESS_TOKEN=
-
-# Facebook
-FB_PAGE_ID=
-FB_PAGE_ACCESS_TOKEN=
-
-# LinkedIn
-LINKEDIN_ACCESS_TOKEN=
-LINKEDIN_PERSON_ID=
 ```
 
 ---
@@ -393,35 +271,61 @@ sequenceDiagram
     actor User
     participant App as AutoSWOT App
     participant API as Backend API
-    participant Gemini as Gemini 2.5 Flash
-    participant Canvas as Infographic Engine
+    participant ORC as Orchestrator
+    participant RA as Research Agent
+    participant AA as Analyst Agent
+    participant REV as Reviewer Agent
+    participant DA as Designer Agent
+    participant QA as Quality Agent
     participant Social as Social Publishers
 
-    User->>App: Enter ticker (e.g., "AAPL")
-    App->>API: POST /api/analyze { ticker: "AAPL" }
-    API->>Gemini: Generate analysis (structured JSON)
-    Gemini-->>API: SecurityAnalysis response
-    API-->>App: Display analysis data
+    User->>App: Enter ticker + select design style
+    App->>API: POST /api/analyze { ticker, style }
+    API->>ORC: Start pipeline
 
-    User->>App: Click "Generate Infographic"
-    App->>API: POST /api/infographic { analysis }
-    API->>Canvas: Render 1080x1920 canvas
-    Canvas-->>API: JPEG + PNG buffers
-    API-->>App: Display 9:16 preview
+    ORC->>RA: Fetch Yahoo Finance data
+    RA-->>ORC: ResearchData
 
-    User->>App: Review & edit caption
-    User->>App: Select platforms + Click "Publish"
-    App->>API: POST /api/publish { platforms, imagePath, caption }
-    
-    par Parallel Publishing
-        API->>Social: Publish to X
-        API->>Social: Publish to Facebook
-        API->>Social: Publish to LinkedIn
-        API->>Social: Publish to TikTok
+    ORC->>AA: Generate SWOT analysis (with ResearchData as context)
+    AA-->>ORC: SecurityAnalysis
+
+    ORC->>REV: Review analysis against ResearchData
+    alt Corrections needed
+        REV-->>ORC: FAIL + corrections
+        ORC->>AA: Retry with corrections
+        AA-->>ORC: Revised SecurityAnalysis
+        ORC->>REV: Re-review
     end
-    
-    Social-->>API: Results (success/fail per platform)
-    API-->>App: Show publish status dashboard
+    REV-->>ORC: APPROVED
+
+    ORC->>DA: Render infographic (analysis + style)
+    DA-->>ORC: JPEG + PNG
+
+    ORC->>QA: Validate infographic (vision)
+    alt Quality issues
+        QA-->>ORC: Score < 80 + issues
+        ORC->>DA: Re-render with notes
+        DA-->>ORC: Revised images
+        ORC->>QA: Re-validate
+    end
+    QA-->>ORC: APPROVED (score ≥ 80)
+
+    ORC-->>API: analysis + infographicPath + pipelineLog
+    API-->>App: Display results + pipeline status
+
+    User->>App: Review infographic + edit caption
+    User->>App: Select platforms + Publish
+    App->>API: POST /api/publish { platforms, image, caption }
+
+    par Parallel Publishing
+        API->>Social: X
+        API->>Social: TikTok
+        API->>Social: Facebook
+        API->>Social: LinkedIn
+    end
+
+    Social-->>API: Results per platform
+    API-->>App: Publish status dashboard
 ```
 
 ---
@@ -431,28 +335,28 @@ sequenceDiagram
 ### Automated Tests
 
 ```bash
-# 1. Build verification
-npm run build          # Ensure TypeScript compiles cleanly
-
-# 2. Unit tests
+npm run build          # TypeScript compiles cleanly
 npm run test           # Jest tests for:
-                       #   - Gemini service (mocked API responses)
-                       #   - Infographic engine (canvas output dimensions)
+                       #   - Each skill (mocked external calls)
+                       #   - Agent pipeline (mocked Gemini + Yahoo Finance)
                        #   - Publisher interfaces (mocked social APIs)
-
-# 3. Dev server startup
-npm run dev            # Verify frontend + backend start without errors
+                       #   - Infographic dimensions (1080x1920)
+npm run dev            # Frontend + backend start without errors
 ```
 
 ### Manual Verification
 
-1. **Gemini Analysis**: Enter a well-known ticker (AAPL, MSFT) and verify the analysis is accurate, structured, and complete
-2. **Infographic Output**: Verify the generated image is exactly 1080×1920, visually polished, and contains all sections
-3. **PWA**: Open in Chrome, verify service worker registers and `manifest.json` is detected
-4. **Electron**: Run `npm run electron:dev` and verify the desktop window opens with correct dimensions
-5. **Social Publishing**: Test each platform individually with a test/draft post to verify image upload and caption work correctly
+1. **Pipeline**: Run analysis on AAPL — verify all 5 agents execute, pipeline log shows steps
+2. **Reviewer**: Verify Gemini's analysis is cross-checked against Yahoo Finance data
+3. **Infographic**: Verify 1080×1920 output in all 3 design styles
+4. **Quality Agent**: Verify vision check catches truncated text or missing sections
+5. **Social Publishing**: Test each platform individually with test/draft posts
+6. **PWA**: Verify service worker registers in Chrome
+7. **Electron**: Verify desktop window opens at 440×900
 
 ### Browser UI Testing
-- Use the browser tool to navigate through all 3 pages (Analyze → Infographic → Publish)
-- Verify responsive layout, animations, and loading states
-- Test error states (invalid ticker, API failures)
+
+- Navigate all 3 pages (Analyze → Infographic → Publish)
+- Verify style selector shows 3 visual options
+- Verify pipeline progress indicator updates in real-time
+- Test error states (invalid ticker, API failures, agent retries)
