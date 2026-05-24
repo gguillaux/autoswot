@@ -1,0 +1,19 @@
+appId: com.autoswot.app
+productName: AutoSWOT
+directories:
+  output: release
+  buildResources: build
+files:
+  - dist/**/*
+  - src/electron/**/*
+  - node_modules/**/*
+  - package.json
+asar: true
+mac:
+  target: dmg
+  category: public.app-category.finance
+win:
+  target: nsis
+linux:
+  target: AppImage
+  category: Finance

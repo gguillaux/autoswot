@@ -1,19 +1,22 @@
 # AutoSWOT
 
-AI-powered security analysis & social publishing platform.
-
-Generate SWOT infographics for any financial security using Google Gemini, then publish them across X, TikTok, Facebook, and LinkedIn — all from a sleek desktop/PWA app.
+AutoSWOT is an AI-powered, multi-agent platform for generating financial security SWOT analyses and rendering visually stunning infographics. It leverages an Orchestrator-Worker agent pattern to gather live market data, perform deep financial analysis, fact-check the AI's claims, and design ready-to-publish social media graphics.
 
 ## Features
 
-- 🤖 **Gemini-Powered Analysis** — Enter any ticker to get a comprehensive SWOT analysis, company history, and revenue model breakdown
-- 🎨 **Infographic Generation** — Automatically generates beautiful 9:16 portrait infographics ready for social media
-- 📱 **Multi-Platform Publishing** — Publish to X, TikTok, Facebook, and LinkedIn with one click
-- 💻 **Desktop + PWA** — Runs as an Electron desktop app or a Progressive Web App in the browser
+- **Multi-Agent Pipeline**:
+  - **Orchestrator**: Manages state, error handling, and retry loops.
+  - **Research Agent**: Fetches ground-truth data from Yahoo Finance (`yahoo-finance2`).
+  - **Analyst Agent**: Uses Gemini 2.5 Flash to generate SWOT analysis and company timelines.
+  - **Reviewer Agent**: Cross-references Gemini's claims against real financial data for accuracy.
+  - **Designer Agent**: Uses `@napi-rs/canvas` to render beautiful 1080x1920 infographics in 3 distinct styles.
+  - **Quality Agent**: Uses Gemini's Vision capabilities to ensure text readability, layout balance, and high contrast.
+- **Dynamic Infographics**: Choose between Dark Gradient, Clean Corporate, and Bold Editorial styles at runtime.
+- **Social Media Publishing**: Integrated publishers for X (Twitter), LinkedIn, Facebook, and TikTok.
+- **Cross-Platform**: Built as a PWA and wrapped with Electron for desktop capability.
 
 ## Tech Stack
 
-- **Backend**: TypeScript + Express + Node.js
 - **Frontend**: React + Vite
 - **AI**: Google Gemini 2.5 Flash (`@google/genai`)
 - **Infographic Engine**: Canvas + Sharp
